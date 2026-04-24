@@ -3,6 +3,8 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const supabase = require('../config/supabase');
 const { success, error } = require('../utils/response');
+const { logAudit } = require('../services/audit.service');
+const logger = require('../config/logger');
 const {
   JWT_SECRET, JWT_EXPIRES_IN,
   JWT_REFRESH_SECRET, JWT_REFRESH_EXPIRES_IN,
@@ -15,11 +17,33 @@ const generateTokens = (user) => {
   return { accessToken, refreshToken };
 };
 
+const storeRefreshToken = async (userId, token) => {
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  await supabase.from('refresh_tokens').insert({ user_id: userId, token, expires_at: expiresAt });
+};
+
+const revokeRefreshToken = async (token) => {
+  await supabase.from('refresh_tokens').delete().eq('token', token);
+};
+
+const isRefreshTokenValid = async (token) => {
+  const { data } = await supabase
+    .from('refresh_tokens')
+    .select('id, expires_at')
+    .eq('token', token)
+    .single();
+  if (!data) return false;
+  if (new Date(data.expires_at) < new Date()) {
+    await supabase.from('refresh_tokens').delete().eq('token', token);
+    return false;
+  }
+  return true;
+};
+
 const register = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
-    // Check if email already exists
     const { data: existing } = await supabase
       .from('users')
       .select('id')
@@ -41,6 +65,8 @@ const register = async (req, res) => {
     if (dbError) throw dbError;
 
     const { accessToken, refreshToken } = generateTokens(user);
+    await storeRefreshToken(user.id, refreshToken);
+    await logAudit(user.id, 'USER_REGISTER', 'users', user.id, null, { id: user.id, email: user.email, role: user.role });
 
     return success(res, { user, accessToken, refreshToken }, 201);
   } catch (err) {
@@ -68,11 +94,14 @@ const login = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
+      await logAudit(user.id, 'LOGIN_FAILED', 'users', user.id, null, { email });
       return error(res, 'Invalid email or password', 401, 'INVALID_CREDENTIALS');
     }
 
     const { password_hash, ...safeUser } = user;
     const { accessToken, refreshToken } = generateTokens(safeUser);
+    await storeRefreshToken(safeUser.id, refreshToken);
+    await logAudit(safeUser.id, 'LOGIN_SUCCESS', 'users', safeUser.id, null, { email });
 
     return success(res, { user: safeUser, accessToken, refreshToken });
   } catch (err) {
@@ -81,7 +110,16 @@ const login = async (req, res) => {
 };
 
 const logout = async (req, res) => {
-  return success(res, { message: 'Logged out successfully' });
+  try {
+    const { refreshToken } = req.body;
+    if (refreshToken) {
+      await revokeRefreshToken(refreshToken);
+    }
+    await logAudit(req.user.id, 'LOGOUT', 'users', req.user.id, null, null);
+    return success(res, { message: 'Logged out successfully' });
+  } catch (err) {
+    return error(res, 'Logout failed', 500);
+  }
 };
 
 const refresh = async (req, res) => {
@@ -89,6 +127,11 @@ const refresh = async (req, res) => {
     const { refreshToken } = req.body;
 
     const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
+
+    const valid = await isRefreshTokenValid(refreshToken);
+    if (!valid) {
+      return error(res, 'Invalid or expired refresh token', 401, 'INVALID_REFRESH_TOKEN');
+    }
 
     const { data: user, error: dbError } = await supabase
       .from('users')
@@ -104,7 +147,11 @@ const refresh = async (req, res) => {
       return error(res, 'Account is deactivated', 403, 'ACCOUNT_INACTIVE');
     }
 
+    // Rotate: revoke old, issue new
+    await revokeRefreshToken(refreshToken);
     const tokens = generateTokens(user);
+    await storeRefreshToken(user.id, tokens.refreshToken);
+
     return success(res, tokens);
   } catch (err) {
     return error(res, 'Invalid or expired refresh token', 401, 'INVALID_REFRESH_TOKEN');
@@ -121,16 +168,17 @@ const forgotPassword = async (req, res) => {
       .eq('email', email)
       .single();
 
-    // Always return success (don't reveal if email exists)
     if (!user) {
       return success(res, { message: 'If that email exists, a reset link has been sent.' });
     }
 
     const resetToken = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
 
-    // TODO: send email with resetToken (Week 5 — email service)
-    // For now log it
-    console.log(`Reset token for ${email}: ${resetToken}`);
+    // Log at debug level only — never expose token in info/warn logs
+    logger.debug(`Password reset requested for ${email}`);
+
+    // TODO: Week 5 — send email via email.service.js
+    // await sendPasswordReset(user.email, resetToken);
 
     return success(res, { message: 'If that email exists, a reset link has been sent.' });
   } catch (err) {
@@ -151,6 +199,10 @@ const resetPassword = async (req, res) => {
       .eq('id', decoded.id);
 
     if (dbError) throw dbError;
+
+    // Revoke all refresh tokens for this user after password reset
+    await supabase.from('refresh_tokens').delete().eq('user_id', decoded.id);
+    await logAudit(decoded.id, 'PASSWORD_RESET', 'users', decoded.id, null, null);
 
     return success(res, { message: 'Password reset successfully' });
   } catch (err) {

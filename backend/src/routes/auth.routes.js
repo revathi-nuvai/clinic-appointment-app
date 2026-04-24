@@ -12,7 +12,7 @@ const {
 router.post('/register', authLimiter, validate(registerSchema), register);
 router.post('/login', authLimiter, validate(loginSchema), login);
 router.post('/logout', authenticate, logout);
-router.post('/refresh', validate(refreshSchema), refresh);
+router.post('/refresh', authLimiter, validate(refreshSchema), refresh);
 router.post('/forgot-password', authLimiter, validate(forgotPasswordSchema), forgotPassword);
 router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
 

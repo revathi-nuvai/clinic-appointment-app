@@ -113,3 +113,16 @@ CREATE TRIGGER appointments_updated_at
 -- Block 9: Row Level Security
 ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+-- Block 10: Refresh tokens table (for secure logout + token rotation)
+CREATE TABLE refresh_tokens (
+  id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token      TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_refresh_tokens_user    ON refresh_tokens(user_id);
+CREATE INDEX idx_refresh_tokens_token   ON refresh_tokens(token);
+CREATE INDEX idx_refresh_tokens_expires ON refresh_tokens(expires_at);
