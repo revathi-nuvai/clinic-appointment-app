@@ -6,6 +6,11 @@ const morgan = require('morgan');
 const { generalLimiter } = require('./middleware/rateLimit.middleware');
 const errorHandler = require('./middleware/errorHandler.middleware');
 const healthRoutes = require('./routes/health.routes');
+const authRoutes = require('./routes/auth.routes');
+const doctorRoutes = require('./routes/doctor.routes');
+const appointmentRoutes = require('./routes/appointment.routes');
+const userRoutes = require('./routes/user.routes');
+const notificationRoutes = require('./routes/notification.routes');
 const logger = require('./config/logger');
 const { PORT, FRONTEND_URL, API_VERSION } = require('./config/env');
 
@@ -21,6 +26,11 @@ app.use(generalLimiter);
 
 // Routes
 app.use(`/api/${API_VERSION}/health`, healthRoutes);
+app.use(`/api/${API_VERSION}/auth`, authRoutes);
+app.use(`/api/${API_VERSION}/doctors`, doctorRoutes);
+app.use(`/api/${API_VERSION}/appointments`, appointmentRoutes);
+app.use(`/api/${API_VERSION}/users`, userRoutes);
+app.use(`/api/${API_VERSION}/notifications`, notificationRoutes);
 
 // 404 handler
 app.use((req, res) => {
