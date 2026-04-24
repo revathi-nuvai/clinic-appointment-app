@@ -1,0 +1,20 @@
+name: Keep Services Alive
+
+on:
+  schedule:
+    - cron: '0 12 */3 * *'  # every 3 days at noon
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        run: |
+          curl -s "${{ secrets.SUPABASE_URL }}/rest/v1/" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}"
+
+  ping-render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Backend
+        run: curl -s ${{ secrets.BACKEND_URL }}/api/v1/health
