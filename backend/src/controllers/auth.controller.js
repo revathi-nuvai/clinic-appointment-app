@@ -8,6 +8,7 @@ const logger = require('../config/logger');
 const {
   JWT_SECRET, JWT_EXPIRES_IN,
   JWT_REFRESH_SECRET, JWT_REFRESH_EXPIRES_IN,
+  ADMIN_BOOTSTRAP_SECRET,
 } = require('../config/env');
 
 const generateTokens = (user) => {
@@ -63,6 +64,19 @@ const register = async (req, res) => {
       .single();
 
     if (dbError) throw dbError;
+
+    if (role === 'doctor') {
+      await supabase.from('doctors').insert({
+        user_id: user.id,
+        specialization: 'General Practice',
+        experience_years: 0,
+        available_days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        available_from: '09:00',
+        available_to: '17:00',
+        slot_duration: 30,
+        is_active: true,
+      });
+    }
 
     const { accessToken, refreshToken } = generateTokens(user);
     await storeRefreshToken(user.id, refreshToken);
@@ -210,4 +224,34 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { register, login, logout, refresh, forgotPassword, resetPassword };
+const bootstrapAdmin = async (req, res) => {
+  try {
+    if (!ADMIN_BOOTSTRAP_SECRET) {
+      return error(res, 'Bootstrap not enabled', 403, 'FORBIDDEN');
+    }
+    const { secret, name, email, password } = req.body;
+    if (secret !== ADMIN_BOOTSTRAP_SECRET) {
+      return error(res, 'Invalid bootstrap secret', 403, 'FORBIDDEN');
+    }
+    if (!name || !email || !password) {
+      return error(res, 'name, email, and password are required', 400, 'VALIDATION_ERROR');
+    }
+
+    const { data: existing } = await supabase.from('users').select('id').eq('email', email).single();
+    if (existing) return error(res, 'Email already registered', 409, 'EMAIL_EXISTS');
+
+    const password_hash = await bcrypt.hash(password, 12);
+    const { data: user, error: dbError } = await supabase
+      .from('users')
+      .insert({ id: uuidv4(), name, email, password_hash, role: 'admin' })
+      .select('id, name, email, role, created_at')
+      .single();
+
+    if (dbError) throw dbError;
+    return success(res, { user }, 201);
+  } catch (err) {
+    return error(res, err.message || 'Bootstrap failed', 500);
+  }
+};
+
+module.exports = { register, login, logout, refresh, forgotPassword, resetPassword, bootstrapAdmin };

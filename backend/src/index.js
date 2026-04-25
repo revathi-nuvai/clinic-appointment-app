@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const Sentry = require('@sentry/node');
 const { generalLimiter } = require('./middleware/rateLimit.middleware');
 const errorHandler = require('./middleware/errorHandler.middleware');
 const healthRoutes = require('./routes/health.routes');
@@ -12,9 +13,15 @@ const appointmentRoutes = require('./routes/appointment.routes');
 const userRoutes = require('./routes/user.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const logger = require('./config/logger');
-const { PORT, FRONTEND_URL, API_VERSION } = require('./config/env');
+const { PORT, FRONTEND_URL, API_VERSION, SENTRY_DSN } = require('./config/env');
+
+if (SENTRY_DSN) {
+  Sentry.init({ dsn: SENTRY_DSN, environment: process.env.NODE_ENV });
+}
 
 const app = express();
+
+if (SENTRY_DSN) app.use(Sentry.Handlers.requestHandler());
 
 // Security middleware
 app.use(helmet());
@@ -38,6 +45,7 @@ app.use((req, res) => {
 });
 
 // Global error handler
+if (SENTRY_DSN) app.use(Sentry.Handlers.errorHandler());
 app.use(errorHandler);
 
 app.listen(PORT, () => {

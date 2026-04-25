@@ -33,4 +33,5 @@ module.exports = {
   RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 900000,
   RATE_LIMIT_MAX: parseInt(process.env.RATE_LIMIT_MAX) || 100,
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+  ADMIN_BOOTSTRAP_SECRET: process.env.ADMIN_BOOTSTRAP_SECRET,
 };
