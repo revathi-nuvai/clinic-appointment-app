@@ -9,23 +9,29 @@ const DoctorDetail: React.FC = () => {
   const navigate = useNavigate();
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsError, setSlotsError] = useState('');
 
   useEffect(() => {
     api.get(`/doctors/${id}`)
       .then(res => setDoctor(res.data.data))
-      .catch(() => navigate('/doctors'))
+      .catch(err => setFetchError(err.response?.data?.error || 'Doctor not found.'))
       .finally(() => setLoading(false));
-  }, [id, navigate]);
+  }, [id]);
 
   const fetchSlots = (date: string) => {
     setSelectedDate(date);
     setSlotsLoading(true);
+    setSlotsError('');
     api.get(`/doctors/${id}/slots?date=${date}`)
       .then(res => setSlots(res.data.data?.slots || []))
-      .catch(() => setSlots([]))
+      .catch(err => {
+        setSlots([]);
+        setSlotsError(err.response?.data?.error || 'Failed to load slots.');
+      })
       .finally(() => setSlotsLoading(false));
   };
 
@@ -38,7 +44,21 @@ const DoctorDetail: React.FC = () => {
     return <Layout><div className="text-center py-20 text-gray-400">Loading…</div></Layout>;
   }
 
-  if (!doctor) return null;
+  if (fetchError || !doctor) {
+    return (
+      <Layout>
+        <div className="text-center py-20">
+          <p className="text-gray-500 font-medium">{fetchError || 'Doctor not found.'}</p>
+          <button
+            onClick={() => navigate('/doctors')}
+            className="mt-4 text-blue-600 text-sm hover:underline"
+          >
+            ← Back to Doctors
+          </button>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -83,6 +103,8 @@ const DoctorDetail: React.FC = () => {
             <h2 className="font-semibold text-gray-800 mb-4">Available Slots</h2>
             {slotsLoading ? (
               <p className="text-gray-400 text-sm">Loading slots…</p>
+            ) : slotsError ? (
+              <p className="text-red-500 text-sm">{slotsError}</p>
             ) : slots.length === 0 ? (
               <p className="text-gray-400 text-sm">No slots available on this day.</p>
             ) : (

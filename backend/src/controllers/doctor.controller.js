@@ -242,4 +242,70 @@ const deleteDoctor = async (req, res) => {
   }
 };
 
-module.exports = { listDoctors, getDoctor, getDoctorSlots, createDoctor, updateDoctor, deleteDoctor };
+const getMyProfile = async (req, res) => {
+  try {
+    const { data, error: dbError } = await supabase
+      .from('doctors')
+      .select(`
+        id, specialization, experience_years, available_days,
+        available_from, available_to, slot_duration, bio, is_active,
+        users!inner(id, name, email)
+      `)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (dbError || !data) return error(res, 'Doctor profile not found. Contact admin.', 404, 'NOT_FOUND');
+
+    return success(res, data);
+  } catch (err) {
+    return error(res, err.message || 'Failed to fetch profile', 500);
+  }
+};
+
+const updateMyProfile = async (req, res) => {
+  try {
+    const DOCTOR_SELF_UPDATE_FIELDS = [
+      'specialization', 'experience_years', 'available_days',
+      'available_from', 'available_to', 'slot_duration', 'bio',
+    ];
+
+    const updates = Object.fromEntries(
+      Object.entries(req.body).filter(([k]) => DOCTOR_SELF_UPDATE_FIELDS.includes(k))
+    );
+
+    if (Object.keys(updates).length === 0) {
+      return error(res, 'No valid fields to update', 400, 'NO_FIELDS');
+    }
+
+    const from = updates.available_from;
+    const to = updates.available_to;
+    if (from && to && from >= to) {
+      return error(res, 'available_from must be before available_to', 400, 'INVALID_HOURS');
+    }
+
+    const { data: existing, error: fetchErr } = await supabase
+      .from('doctors')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (fetchErr || !existing) return error(res, 'Doctor profile not found', 404, 'NOT_FOUND');
+
+    const { data, error: dbError } = await supabase
+      .from('doctors')
+      .update(updates)
+      .eq('id', existing.id)
+      .select()
+      .single();
+
+    if (dbError) throw dbError;
+
+    await logAudit(req.user.id, 'UPDATE_MY_PROFILE', 'doctors', existing.id, existing, data);
+
+    return success(res, data);
+  } catch (err) {
+    return error(res, err.message || 'Failed to update profile', 500);
+  }
+};
+
+module.exports = { listDoctors, getDoctor, getDoctorSlots, createDoctor, updateDoctor, deleteDoctor, getMyProfile, updateMyProfile };

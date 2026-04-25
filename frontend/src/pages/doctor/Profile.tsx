@@ -21,12 +21,9 @@ const DoctorProfile: React.FC = () => {
   });
 
   useEffect(() => {
-    // Get my doctor profile via /users/me then /doctors?user_id
-    api.get('/users/me').then(async meRes => {
-      const userId = meRes.data.data.id;
-      const drRes = await api.get(`/doctors?user_id=${userId}&limit=1`);
-      const doc: Doctor = drRes.data.data?.[0];
-      if (doc) {
+    api.get('/doctors/me')
+      .then(res => {
+        const doc: Doctor = res.data.data;
         setDoctor(doc);
         setForm({
           specialization: doc.specialization,
@@ -37,8 +34,9 @@ const DoctorProfile: React.FC = () => {
           slot_duration: doc.slot_duration,
           bio: doc.bio || '',
         });
-      }
-    }).catch(() => {}).finally(() => setLoading(false));
+      })
+      .catch(() => setError('Failed to load profile. Contact admin if your profile is missing.'))
+      .finally(() => setLoading(false));
   }, []);
 
   const toggleDay = (day: string) => {
@@ -57,7 +55,7 @@ const DoctorProfile: React.FC = () => {
     if (!doctor) return;
     setSaving(true);
     try {
-      await api.put(`/doctors/${doctor.id}`, form);
+      await api.patch('/doctors/me', form);
       setSuccess('Profile updated successfully!');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to update profile.');
@@ -67,7 +65,14 @@ const DoctorProfile: React.FC = () => {
   };
 
   if (loading) return <Layout><div className="text-center py-20 text-gray-400">Loading…</div></Layout>;
-  if (!doctor) return <Layout><div className="text-center py-20 text-gray-400">Doctor profile not found. Contact admin.</div></Layout>;
+  if (!doctor) return (
+    <Layout>
+      <div className="text-center py-20">
+        <p className="text-gray-400">Doctor profile not found.</p>
+        <p className="text-sm text-gray-400 mt-1">Contact an admin to create your profile.</p>
+      </div>
+    </Layout>
+  );
 
   return (
     <Layout>

@@ -3,11 +3,16 @@ const router = express.Router();
 const {
   listDoctors, getDoctor, getDoctorSlots,
   createDoctor, updateDoctor, deleteDoctor,
+  getMyProfile, updateMyProfile,
 } = require('../controllers/doctor.controller');
 const { authenticate } = require('../middleware/auth.middleware');
 const { authorize } = require('../middleware/role.middleware');
 const { validate } = require('../middleware/validate.middleware');
 const { createDoctorSchema, updateDoctorSchema } = require('../validators/doctor.validator');
+
+// Doctor self-profile (must be before /:id to avoid route conflict)
+router.get('/me', authenticate, authorize('doctor'), getMyProfile);
+router.patch('/me', authenticate, authorize('doctor'), validate(updateDoctorSchema), updateMyProfile);
 
 // Public
 router.get('/', listDoctors);

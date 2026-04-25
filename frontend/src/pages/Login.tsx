@@ -10,7 +10,7 @@ const ROLE_HOME: Record<string, string> = {
 };
 
 const Login: React.FC = () => {
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as any)?.from?.pathname;
@@ -18,14 +18,19 @@ const Login: React.FC = () => {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
 
+  // Redirect already-authenticated users
+  React.useEffect(() => {
+    if (!isLoading && isAuthenticated && user) {
+      navigate(from || ROLE_HOME[user.role] || '/', { replace: true });
+    }
+  }, [isAuthenticated, isLoading, user, from, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     try {
       await login(form);
-      const stored = localStorage.getItem('clinic_user');
-      const user = stored ? JSON.parse(stored) : null;
-      navigate(from || ROLE_HOME[user?.role] || '/', { replace: true });
+      // Navigation handled by the effect above once user is set
     } catch (err: any) {
       setError(err.response?.data?.error || 'Login failed. Please try again.');
     }

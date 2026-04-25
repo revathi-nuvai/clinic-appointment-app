@@ -9,18 +9,25 @@ const ROLE_HOME: Record<string, string> = {
 };
 
 const Register: React.FC = () => {
-  const { register, isLoading } = useAuth();
+  const { register, isLoading, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'patient' as 'patient' | 'doctor' });
   const [error, setError] = useState('');
+
+  // Redirect already-authenticated users
+  React.useEffect(() => {
+    if (!isLoading && isAuthenticated && user) {
+      navigate(ROLE_HOME[user.role] || '/', { replace: true });
+    }
+  }, [isAuthenticated, isLoading, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     try {
       await register(form);
-      navigate(ROLE_HOME[form.role] || '/', { replace: true });
+      // Navigation handled by the effect above once user is set
     } catch (err: any) {
       const details = err.response?.data?.details;
       setError(details ? details[0] : err.response?.data?.error || 'Registration failed.');

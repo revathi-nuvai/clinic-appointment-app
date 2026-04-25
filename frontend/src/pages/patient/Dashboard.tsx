@@ -13,7 +13,7 @@ const PatientDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/appointments?limit=5')
+    api.get('/appointments?limit=5&sort=appointment_date&order=desc')
       .then(res => setAppointments(res.data.data || []))
       .catch(() => {})
       .finally(() => setLoading(false));

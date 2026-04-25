@@ -15,21 +15,15 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    try {
-      const stored = localStorage.getItem(USER_KEY);
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  // Start loading=true so PrivateRoute never flashes a redirect before auth resolves
+  const [isLoading, setIsLoading] = useState(true);
 
-  const storeSession = (user: User, tokens: AuthTokens) => {
+  const storeSession = (u: User, tokens: AuthTokens) => {
     localStorage.setItem(TOKEN_KEY, tokens.accessToken);
     localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
-    setUser(user);
+    localStorage.setItem(USER_KEY, JSON.stringify(u));
+    setUser(u);
   };
 
   const clearSession = () => {
@@ -38,6 +32,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem(USER_KEY);
     setUser(null);
   };
+
+  // On mount: validate existing token with backend to prevent stale session
+  useEffect(() => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+    api.get('/users/me')
+      .then(res => setUser(res.data.data))
+      .catch(() => clearSession())
+      .finally(() => setIsLoading(false));
+  }, []);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     setIsLoading(true);
@@ -70,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
       await api.post('/auth/logout', { refreshToken });
     } catch {
-      // Always clear session even if API fails
+      // Always clear session even if API call fails
     } finally {
       clearSession();
     }

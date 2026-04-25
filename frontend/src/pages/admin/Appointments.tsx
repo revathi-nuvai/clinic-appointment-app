@@ -8,12 +8,14 @@ import { formatDate, formatTime } from '../../utils/formatDate';
 const AdminAppointments: React.FC = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     setLoading(true);
+    setFetchError('');
     const params = new URLSearchParams({ page: String(page), limit: '15' });
     if (filterStatus) params.set('status', filterStatus);
     api.get(`/appointments?${params}`)
@@ -21,7 +23,7 @@ const AdminAppointments: React.FC = () => {
         setAppointments(res.data.data || []);
         setTotalPages(res.data.pagination?.totalPages || 1);
       })
-      .catch(() => {})
+      .catch(err => setFetchError(err.response?.data?.error || 'Failed to load appointments.'))
       .finally(() => setLoading(false));
   }, [page, filterStatus]);
 
@@ -46,6 +48,10 @@ const AdminAppointments: React.FC = () => {
             ))}
           </div>
         </div>
+
+        {fetchError && (
+          <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{fetchError}</div>
+        )}
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           {loading ? (

@@ -6,18 +6,21 @@ import { User } from '../../types';
 const AdminUsers: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('');
   const [toggling, setToggling] = useState<string | null>(null);
+  const [toggleError, setToggleError] = useState('');
 
   const fetchUsers = () => {
     setLoading(true);
+    setFetchError('');
     const params = new URLSearchParams({ limit: '20' });
     if (search) params.set('search', search);
     if (role) params.set('role', role);
     api.get(`/users?${params}`)
       .then(res => setUsers(res.data.data || []))
-      .catch(() => {})
+      .catch(err => setFetchError(err.response?.data?.error || 'Failed to load users.'))
       .finally(() => setLoading(false));
   };
 
@@ -25,11 +28,12 @@ const AdminUsers: React.FC = () => {
 
   const toggleActive = async (user: User) => {
     setToggling(user.id);
+    setToggleError('');
     try {
       await api.patch(`/users/${user.id}`, { is_active: !user.is_active });
       fetchUsers();
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to update user');
+      setToggleError(err.response?.data?.error || 'Failed to update user');
     } finally {
       setToggling(null);
     }
@@ -39,6 +43,13 @@ const AdminUsers: React.FC = () => {
     <Layout>
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-gray-800">Users</h1>
+
+        {fetchError && (
+          <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{fetchError}</div>
+        )}
+        {toggleError && (
+          <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{toggleError}</div>
+        )}
 
         <form onSubmit={e => { e.preventDefault(); fetchUsers(); }} className="flex flex-col sm:flex-row gap-3">
           <input

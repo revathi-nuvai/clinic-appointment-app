@@ -33,6 +33,7 @@ const DoctorCard: React.FC<{ doctor: Doctor }> = ({ doctor }) => (
 const Doctors: React.FC = () => {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
   const [search, setSearch] = useState('');
   const [specialization, setSpecialization] = useState('');
   const [page, setPage] = useState(1);
@@ -40,6 +41,7 @@ const Doctors: React.FC = () => {
 
   const fetchDoctors = () => {
     setLoading(true);
+    setFetchError('');
     const params = new URLSearchParams({ page: String(page), limit: '9' });
     if (search) params.set('search', search);
     if (specialization) params.set('specialization', specialization);
@@ -48,7 +50,7 @@ const Doctors: React.FC = () => {
         setDoctors(res.data.data || []);
         setTotalPages(res.data.pagination?.totalPages || 1);
       })
-      .catch(() => {})
+      .catch(err => setFetchError(err.response?.data?.error || 'Failed to load doctors.'))
       .finally(() => setLoading(false));
   };
 
@@ -86,6 +88,10 @@ const Doctors: React.FC = () => {
             Search
           </button>
         </form>
+
+        {fetchError && (
+          <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{fetchError}</div>
+        )}
 
         {/* Results */}
         {loading ? (

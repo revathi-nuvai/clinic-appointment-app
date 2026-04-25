@@ -13,9 +13,17 @@ const ROLE_HOME: Record<string, string> = {
   admin: '/admin/dashboard',
 };
 
+const Spinner = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+  </div>
+);
+
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, roles }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
+
+  if (isLoading) return <Spinner />;
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
