@@ -2,6 +2,7 @@ const supabase = require('../config/supabase');
 const { success, error } = require('../utils/response');
 const { paginate, paginationMeta } = require('../utils/pagination');
 const { logAudit } = require('../services/audit.service');
+const { uploadDoctorImage } = require('../services/storage.service');
 
 const ALLOWED_UPDATE_FIELDS = [
   'specialization', 'experience_years', 'available_days',
@@ -308,4 +309,45 @@ const updateMyProfile = async (req, res) => {
   }
 };
 
-module.exports = { listDoctors, getDoctor, getDoctorSlots, createDoctor, updateDoctor, deleteDoctor, getMyProfile, updateMyProfile };
+const uploadImage = async (req, res) => {
+  try {
+    if (!req.file) return error(res, 'No image file provided', 400, 'NO_FILE');
+
+    const { id } = req.params;
+
+    // Verify doctor exists
+    const { data: doc, error: fetchErr } = await supabase
+      .from('doctors')
+      .select('id, user_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchErr || !doc) return error(res, 'Doctor not found', 404, 'NOT_FOUND');
+
+    // Doctors can only update their own image; admins can update any
+    if (req.user.role === 'doctor' && doc.user_id !== req.user.id) {
+      return error(res, 'Forbidden', 403, 'FORBIDDEN');
+    }
+
+    const ext = req.file.mimetype.split('/')[1] || 'jpg';
+    const path = `${id}/profile.${ext}`;
+    const publicUrl = await uploadDoctorImage(path, req.file.buffer, req.file.mimetype);
+
+    const { data, error: dbError } = await supabase
+      .from('doctors')
+      .update({ profile_image: publicUrl })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (dbError) throw dbError;
+
+    await logAudit(req.user.id, 'UPLOAD_DOCTOR_IMAGE', 'doctors', id, null, { profile_image: publicUrl });
+
+    return success(res, { profile_image: publicUrl });
+  } catch (err) {
+    return error(res, err.message || 'Failed to upload image', 500);
+  }
+};
+
+module.exports = { listDoctors, getDoctor, getDoctorSlots, createDoctor, updateDoctor, deleteDoctor, getMyProfile, updateMyProfile, uploadImage };

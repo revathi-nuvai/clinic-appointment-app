@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 import PrivateRoute from './components/PrivateRoute';
 
 // Public pages
@@ -36,6 +37,7 @@ const Spinner = () => (
 function App() {
   return (
     <AuthProvider>
+      <NotificationProvider>
       <BrowserRouter>
         <Suspense fallback={<Spinner />}>
           <Routes>
@@ -68,6 +70,7 @@ function App() {
           </Routes>
         </Suspense>
       </BrowserRouter>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

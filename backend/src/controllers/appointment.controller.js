@@ -2,6 +2,16 @@ const supabase = require('../config/supabase');
 const { success, error } = require('../utils/response');
 const { paginate, paginationMeta } = require('../utils/pagination');
 const { logAudit } = require('../services/audit.service');
+const {
+  notifyAppointmentBooked,
+  notifyAppointmentConfirmed,
+  notifyAppointmentCancelled,
+  notifyAppointmentCompleted,
+} = require('../services/notification.service');
+const {
+  sendAppointmentConfirmation,
+  sendAppointmentCancellation,
+} = require('../services/email.service');
 
 // Terminal states cannot be changed
 const TERMINAL_STATES = new Set(['cancelled', 'completed']);
@@ -88,6 +98,18 @@ const bookAppointment = async (req, res) => {
     }
 
     await logAudit(patient_id, 'BOOK_APPOINTMENT', 'appointments', apt.id, null, apt);
+
+    // Notify patient + doctor (non-blocking)
+    supabase
+      .from('doctors')
+      .select('user_id, users!inner(email)')
+      .eq('id', doctor_id)
+      .single()
+      .then(({ data: dr }) => {
+        if (!dr) return;
+        const doctorUserId = dr.user_id;
+        notifyAppointmentBooked({ patientId: patient_id, doctorUserId, appointment: apt }).catch(() => {});
+      });
 
     return success(res, apt, 201);
   } catch (err) {
@@ -231,6 +253,31 @@ const updateAppointmentStatus = async (req, res) => {
     if (dbError) throw dbError;
 
     await logAudit(user.id, `APPOINTMENT_${status.toUpperCase()}`, 'appointments', id, existing, data);
+
+    // Fetch doctor's user_id and patient email for notifications/email (non-blocking)
+    supabase
+      .from('doctors')
+      .select('user_id, users!inner(email)')
+      .eq('id', existing.doctor_id)
+      .single()
+      .then(({ data: dr }) => {
+        const doctorUserId = dr?.user_id;
+        const patientId = existing.patient_id;
+
+        if (status === 'confirmed') {
+          notifyAppointmentConfirmed({ patientId, appointment: data }).catch(() => {});
+          // Also send email to patient
+          supabase.from('users').select('email').eq('id', patientId).single()
+            .then(({ data: u }) => { if (u) sendAppointmentConfirmation(u.email, data).catch(() => {}); });
+        } else if (status === 'cancelled') {
+          notifyAppointmentCancelled({ patientId, doctorUserId, appointment: data, cancelledByRole: user.role }).catch(() => {});
+          // Email patient
+          supabase.from('users').select('email').eq('id', patientId).single()
+            .then(({ data: u }) => { if (u) sendAppointmentCancellation(u.email, data).catch(() => {}); });
+        } else if (status === 'completed') {
+          notifyAppointmentCompleted({ patientId, appointment: data }).catch(() => {});
+        }
+      });
 
     return success(res, data);
   } catch (err) {

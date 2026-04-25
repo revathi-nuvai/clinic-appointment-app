@@ -10,6 +10,9 @@ const DoctorProfile: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [form, setForm] = useState({
     specialization: '',
     experience_years: 0,
@@ -38,6 +41,34 @@ const DoctorProfile: React.FC = () => {
       .catch(() => setError('Failed to load profile. Contact admin if your profile is missing.'))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleImageUpload = async () => {
+    if (!imageFile || !doctor) return;
+    setUploadingImage(true);
+    setError('');
+    try {
+      const fd = new FormData();
+      fd.append('image', imageFile);
+      const res = await api.patch(`/doctors/${doctor.id}/image`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setDoctor(d => d ? { ...d, profile_image: res.data.data.profile_image } : d);
+      setImageFile(null);
+      setImagePreview(null);
+      setSuccess('Profile image updated!');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to upload image.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const toggleDay = (day: string) => {
     setForm(f => ({
@@ -81,6 +112,42 @@ const DoctorProfile: React.FC = () => {
 
         {success && <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">{success}</div>}
         {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>}
+
+        {/* Profile image section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-5 mb-4">
+          <div className="w-20 h-20 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center flex-shrink-0">
+            {imagePreview || doctor.profile_image ? (
+              <img
+                src={imagePreview || doctor.profile_image!}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-blue-600 font-bold text-3xl">
+                {(doctor.user?.name || 'D')[0]}
+              </span>
+            )}
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-gray-700 mb-2">Profile Photo</p>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            {imageFile && (
+              <button
+                type="button"
+                onClick={handleImageUpload}
+                disabled={uploadingImage}
+                className="mt-2 block text-xs bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 disabled:opacity-60"
+              >
+                {uploadingImage ? 'Uploading…' : 'Upload Photo'}
+              </button>
+            )}
+          </div>
+        </div>
 
         <form onSubmit={handleSave} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-5">
           <div>

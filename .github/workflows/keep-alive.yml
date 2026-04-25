@@ -2,19 +2,36 @@ name: Keep Services Alive
 
 on:
   schedule:
-    - cron: '0 12 */3 * *'  # every 3 days at noon
+    # Ping Render every 10 minutes to prevent free-tier sleep
+    - cron: '*/10 * * * *'
+    # Ping Supabase every 3 days to prevent free-tier pause
+    - cron: '0 12 */3 * *'
+  workflow_dispatch: {}
 
 jobs:
-  ping-supabase:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Ping Supabase
-        run: |
-          curl -s "${{ secrets.SUPABASE_URL }}/rest/v1/" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}"
-
   ping-render:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Backend
-        run: curl -s ${{ secrets.BACKEND_URL }}/api/v1/health
+      - name: Ping Backend (keep Render awake)
+        run: |
+          if [ -n "${{ secrets.BACKEND_URL }}" ]; then
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.BACKEND_URL }}/api/v1/health")
+            echo "Health check status: $STATUS"
+          else
+            echo "BACKEND_URL not set — skipping"
+          fi
+
+  ping-supabase:
+    runs-on: ubuntu-latest
+    # Only run the Supabase ping on the 3-day schedule (not every 10 min)
+    if: github.event.schedule == '0 12 */3 * *' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Ping Supabase (keep project active)
+        run: |
+          if [ -n "${{ secrets.SUPABASE_URL }}" ]; then
+            curl -s "${{ secrets.SUPABASE_URL }}/rest/v1/" \
+              -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+              -o /dev/null -w "Supabase ping: %{http_code}\n"
+          else
+            echo "SUPABASE_URL not set — skipping"
+          fi
