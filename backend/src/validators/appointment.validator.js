@@ -2,13 +2,17 @@ const Joi = require('joi');
 
 const bookAppointmentSchema = Joi.object({
   doctor_id: Joi.string().uuid().required(),
-  appointment_date: Joi.date()
-    .iso()
-    .min('now')
+  appointment_date: Joi.string()
+    .pattern(/^\d{4}-\d{2}-\d{2}$/)
+    .custom((value, helpers) => {
+      const today = new Date().toISOString().split('T')[0];
+      if (value < today) return helpers.error('date.min');
+      return value;
+    })
     .required()
     .messages({
+      'string.pattern.base': 'Date must be a valid date (YYYY-MM-DD)',
       'date.min': 'Appointment date cannot be in the past',
-      'date.base': 'Date must be a valid date (YYYY-MM-DD)',
     }),
   appointment_time: Joi.string()
     .pattern(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/)
