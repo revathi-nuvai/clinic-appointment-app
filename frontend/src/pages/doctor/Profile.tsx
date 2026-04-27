@@ -124,7 +124,7 @@ const DoctorProfile: React.FC = () => {
               />
             ) : (
               <span className="text-blue-600 font-bold text-3xl">
-                {(doctor.user?.name || 'D')[0]}
+                {(doctor.users?.name || 'D')[0]}
               </span>
             )}
           </div>

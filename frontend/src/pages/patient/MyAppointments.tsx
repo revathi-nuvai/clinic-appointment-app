@@ -102,7 +102,7 @@ const MyAppointments: React.FC = () => {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <p className="font-semibold text-gray-800">
-                      Dr. {(apt.doctor as any)?.user?.name || '—'}
+                      Dr. {(apt.doctor as any)?.users?.name || '—'}
                     </p>
                     <p className="text-sm text-blue-600">{(apt.doctor as any)?.specialization}</p>
                     <p className="text-sm text-gray-500 mt-1">

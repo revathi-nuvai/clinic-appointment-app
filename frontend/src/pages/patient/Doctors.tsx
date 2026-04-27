@@ -9,10 +9,10 @@ const DoctorCard: React.FC<{ doctor: Doctor }> = ({ doctor }) => (
   <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col gap-3">
     <div className="flex items-start gap-4">
       <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg flex-shrink-0">
-        {(doctor.user?.name || 'D')[0]}
+        {(doctor.users?.name || 'D')[0]}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-gray-800">Dr. {doctor.user?.name}</p>
+        <p className="font-semibold text-gray-800">Dr. {doctor.users?.name}</p>
         <p className="text-sm text-blue-600">{doctor.specialization}</p>
         <p className="text-xs text-gray-400">{doctor.experience_years} years experience</p>
       </div>

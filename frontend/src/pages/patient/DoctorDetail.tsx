@@ -66,10 +66,10 @@ const DoctorDetail: React.FC = () => {
         {/* Doctor info */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex gap-5">
           <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-2xl flex-shrink-0">
-            {(doctor.user?.name || 'D')[0]}
+            {(doctor.users?.name || 'D')[0]}
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Dr. {doctor.user?.name}</h1>
+            <h1 className="text-2xl font-bold text-gray-800">Dr. {doctor.users?.name}</h1>
             <p className="text-blue-600 font-medium">{doctor.specialization}</p>
             <p className="text-sm text-gray-400">{doctor.experience_years} years experience</p>
             {doctor.bio && <p className="mt-3 text-sm text-gray-600">{doctor.bio}</p>}

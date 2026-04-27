@@ -62,7 +62,7 @@ const BookAppointment: React.FC = () => {
         {/* Summary card */}
         <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 mb-6">
           <p className="text-sm text-gray-500 mb-1">Doctor</p>
-          <p className="font-semibold text-gray-800">Dr. {doctor.user?.name}</p>
+          <p className="font-semibold text-gray-800">Dr. {doctor.users?.name}</p>
           <p className="text-sm text-blue-600">{doctor.specialization}</p>
           <div className="mt-3 grid grid-cols-2 gap-4">
             <div>

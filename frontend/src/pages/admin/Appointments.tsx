@@ -76,7 +76,7 @@ const AdminAppointments: React.FC = () => {
                       <p className="text-xs text-gray-400">{(apt.patient as any)?.email}</p>
                     </td>
                     <td className="px-5 py-3">
-                      <p className="text-gray-800">Dr. {(apt.doctor as any)?.user?.name}</p>
+                      <p className="text-gray-800">Dr. {(apt.doctor as any)?.users?.name}</p>
                       <p className="text-xs text-blue-500">{(apt.doctor as any)?.specialization}</p>
                     </td>
                     <td className="px-5 py-3 text-gray-500">

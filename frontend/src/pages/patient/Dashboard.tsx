@@ -71,7 +71,7 @@ const PatientDashboard: React.FC = () => {
                 <li key={apt.id} className="px-6 py-4 flex items-center justify-between">
                   <div>
                     <p className="font-medium text-gray-800">
-                      Dr. {(apt.doctor as any)?.user?.name || '—'}
+                      Dr. {(apt.doctor as any)?.users?.name || '—'}
                     </p>
                     <p className="text-sm text-gray-500">
                       {formatDate(apt.appointment_date)} at {formatTime(apt.appointment_time)}

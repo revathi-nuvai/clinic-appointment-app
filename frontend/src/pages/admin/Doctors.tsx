@@ -240,7 +240,7 @@ const AdminDoctors: React.FC = () => {
               <tbody className="divide-y divide-gray-50">
                 {doctors.map(doc => (
                   <tr key={doc.id} className="hover:bg-gray-50">
-                    <td className="px-5 py-3 font-medium text-gray-800">Dr. {doc.user?.name}</td>
+                    <td className="px-5 py-3 font-medium text-gray-800">Dr. {doc.users?.name}</td>
                     <td className="px-5 py-3 text-blue-600">{doc.specialization}</td>
                     <td className="px-5 py-3 text-gray-500">{doc.experience_years} yrs</td>
                     <td className="px-5 py-3">
@@ -272,7 +272,7 @@ const AdminDoctors: React.FC = () => {
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
             <h3 className="font-semibold text-gray-800 mb-2">Deactivate Doctor?</h3>
             <p className="text-sm text-gray-500 mb-1">
-              Dr. <span className="font-medium">{deactivateTarget.user?.name}</span> will no longer appear in listings.
+              Dr. <span className="font-medium">{deactivateTarget.users?.name}</span> will no longer appear in listings.
             </p>
             <p className="text-xs text-gray-400 mb-4">Active appointments must be resolved first.</p>
             {deactivateError && (
