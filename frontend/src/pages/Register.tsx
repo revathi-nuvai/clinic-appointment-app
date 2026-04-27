@@ -63,7 +63,7 @@ const Register: React.FC = () => {
               type="text"
               required
               value={form.name}
-              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              onChange={e => { setError(''); setForm(f => ({ ...f, name: e.target.value })); }}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="John Doe"
             />
@@ -75,7 +75,7 @@ const Register: React.FC = () => {
               type="email"
               required
               value={form.email}
-              onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+              onChange={e => { setError(''); setForm(f => ({ ...f, email: e.target.value })); }}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="you@example.com"
             />

@@ -58,7 +58,7 @@ const Login: React.FC = () => {
               type="email"
               required
               value={form.email}
-              onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+              onChange={e => { setError(''); setForm(f => ({ ...f, email: e.target.value })); }}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="you@example.com"
             />
@@ -71,7 +71,7 @@ const Login: React.FC = () => {
                 type={showPassword ? 'text' : 'password'}
                 required
                 value={form.password}
-                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                onChange={e => { setError(''); setForm(f => ({ ...f, password: e.target.value })); }}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="••••••••"
               />
