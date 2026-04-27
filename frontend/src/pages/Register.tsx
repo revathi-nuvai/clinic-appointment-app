@@ -6,6 +6,7 @@ import { ROLES } from '../utils/constants';
 const ROLE_HOME: Record<string, string> = {
   [ROLES.PATIENT]: '/dashboard',
   [ROLES.DOCTOR]: '/doctor/dashboard',
+  [ROLES.ADMIN]: '/admin/dashboard',
 };
 
 const Register: React.FC = () => {
