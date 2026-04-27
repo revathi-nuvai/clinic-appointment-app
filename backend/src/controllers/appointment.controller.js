@@ -128,7 +128,7 @@ const listAppointments = async (req, res) => {
       .select(`
         id, appointment_date, appointment_time, reason, status, notes, cancel_reason, created_at,
         patient:users!patient_id(id, name, email),
-        doctor:doctors!doctor_id(id, specialization, user:users!user_id(id, name))
+        doctor:doctors!doctor_id(id, specialization, users:users!user_id(id, name))
       `, { count: 'exact' })
       .range(offset, offset + limit - 1)
       .order('appointment_date', { ascending: false });
@@ -159,7 +159,7 @@ const getAppointment = async (req, res) => {
         id, appointment_date, appointment_time, reason, status, notes, cancel_reason, created_at,
         patient_id, doctor_id,
         patient:users!patient_id(id, name, email),
-        doctor:doctors!doctor_id(id, specialization, user_id, user:users!user_id(id, name))
+        doctor:doctors!doctor_id(id, specialization, user_id, users:users!user_id(id, name))
       `)
       .eq('id', req.params.id)
       .single();
